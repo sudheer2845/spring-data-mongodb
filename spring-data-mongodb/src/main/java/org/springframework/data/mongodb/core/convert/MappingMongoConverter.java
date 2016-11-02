@@ -348,17 +348,19 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 			return;
 		}
 
-		Class<?> entityType = obj.getClass();
+		Class<?> entityType = ClassUtils.getUserClass(obj.getClass());
+
 		boolean handledByCustomConverter = conversions.getCustomWriteTarget(entityType, DBObject.class) != null;
 		TypeInformation<? extends Object> type = ClassTypeInformation.from(entityType);
 
-		if (!handledByCustomConverter && !(dbo instanceof BasicDBList)) {
-			typeMapper.writeType(type, dbo);
-		}
 
 		Object target = obj instanceof LazyLoadingProxy ? ((LazyLoadingProxy) obj).getTarget() : obj;
 
 		writeInternal(target, dbo, type);
+
+		if (!handledByCustomConverter && !(dbo instanceof BasicDBList)) {
+			typeMapper.writeType(type, dbo);
+		}
 	}
 
 	/**
@@ -516,12 +518,13 @@ public class MappingMongoConverter extends AbstractMongoConverter implements App
 		Object existingValue = accessor.get(prop);
 		BasicDBObject propDbObj = existingValue instanceof BasicDBObject ? (BasicDBObject) existingValue
 				: new BasicDBObject();
-		addCustomTypeKeyIfNecessary(ClassTypeInformation.from(prop.getRawType()), obj, propDbObj);
+
 
 		MongoPersistentEntity<?> entity = isSubtype(prop.getType(), obj.getClass())
 				? mappingContext.getPersistentEntity(obj.getClass()) : mappingContext.getPersistentEntity(type);
 
 		writeInternal(obj, propDbObj, entity);
+		addCustomTypeKeyIfNecessary(ClassTypeInformation.from(prop.getRawType()), obj, propDbObj);
 		accessor.put(prop, propDbObj);
 	}
 
